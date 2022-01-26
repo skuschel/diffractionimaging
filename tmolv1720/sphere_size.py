@@ -125,6 +125,11 @@ def diffraction_pattern_extrema_linfit(rprof, c=0.1):
     return m, b, relmin[0]
 
 
+def linfit2guess(guess):
+    minposs = guess[0] + guess[1], guess[2]
+    return np.mean(minposs)
+
+
 def fit_diffraction_sphere(radprof, I0, minpos):
     '''
     minpos and I0 are the starting values.
