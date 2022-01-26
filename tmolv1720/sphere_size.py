@@ -25,7 +25,7 @@ def radial_profile(data, center=None, anglerange=None, returnmask=False):
     '''
     if center is None:
         center = data.shape[0] // 2, data.shape[1] // 2
-    x, y = np.indices(data.shape)
+    y, x = np.indices(data.shape)
     r = np.rint((np.sqrt((x - center[0])**2 + (y - center[1])**2))).astype(int)
     nanmask = ~np.isnan(data)
     if anglerange is not None:
