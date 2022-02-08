@@ -37,7 +37,7 @@ def radial_profile(data, center=None, anglerange=None, returnmask=False):
     nr = np.bincount(rr)
     tbin = np.bincount(rr, data[nanmask].ravel())
     nr = np.ma.array(nr, dtype=int)
-    nr[nr==0] = np.ma.masked
+    nr[nr == 0] = np.ma.masked
     radialprofile = tbin / nr
     if returnmask:
         return radialprofile, nanmask
