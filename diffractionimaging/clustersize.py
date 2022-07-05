@@ -163,6 +163,20 @@ def fit_diffraction_sphere(radprof, I0, minpos):
     return popt
 
 
+def autofit_sphere(image, center=None):
+    '''
+    attempt to fit the image. Nans in the image will be masked.
+
+    returns the parameter I0 and minpos of the fit. Use the function `fit2size`
+    to convert to a physical cluster size.
+    '''
+    rprof = radial_profile(image, center=center)
+    linfit = diffraction_pattern_extrema_linfit(rprof)
+    guess = linfit2guess(linfit)
+    fit = fit_diffraction_sphere(rprof, None, guess)
+    return fit
+
+
 def fit2size(popt, lamb, pixelsize=50e-6, d=425e-3, npixel=100):
     '''
     returns the fitted sphere radius +- fit error in nm.
