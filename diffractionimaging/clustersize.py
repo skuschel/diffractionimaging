@@ -155,6 +155,7 @@ def fit_diffraction_sphere(radprof, I0, minpos):
     nans will be ignored.
     '''
     rprof = ma.masked_invalid(radprof)
+    rprof.mask[0] = True  # center must always be masked
     I0 = 2 * np.max(rprof) if I0 is None else I0
     r = np.arange(len(radprof))
     popt = so.curve_fit(diffraction_sphere,
