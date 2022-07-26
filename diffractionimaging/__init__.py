@@ -1,7 +1,7 @@
 
 
 from .clustersize import autofit_sphere
-from .atomicformfactors.py import *
+from .atomicformfactors import *
 from .helpers import *
 
 from . import _version
