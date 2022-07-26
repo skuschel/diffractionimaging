@@ -77,12 +77,18 @@ def correct_mask(f):
 
     The decorator will return `f(img)/f(~mask)` of the decorated function.
     '''
+    @functools.wraps(f)
     def ret(img):
         # preseves existing mask and np.nan and np.inf also become invalid.
         img = ma.masked_invalid(img)
         res = f(img.filled(0))  # replace invalid values with 0
         norm = f(~img.mask)
         return res / norm
+    predoc = '''
+    returns the following function with an applied mask correction (i.e. `f(img)/f(~mask)`):
+
+    '''
+    ret.__doc__ = ''.join([predoc, ret.__doc__])
     return ret
 
 
