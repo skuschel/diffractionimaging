@@ -83,19 +83,28 @@ def ev2wavelength(ev):
     return 1.2398/ev/1e6
 
 
-def scattering_cross_section(f):
+def scattering_cross_section(f0):
     '''
-    converts the complext atomic form factor f to the real valued
+    converts the complex atomic form factor f0 to the real valued
     scattering cross section in m**2.
+    
+    \( \sigma_\mathrm{scatt} = \frac{8 \pi}{3} r_e^2 \abs{f^0}^2 \)
+    with the classical electron radius
+    \( r_e = 2.81794 \times 10^{-15} m\)
     '''
-    return 6.65e-29 * np.abs(f)**2
+    return 8/3 * np.pi * const['classical electron radius'][0]**2 * np.abs(f0)**2
 
 
-def absorption_cross_section(f, lamb=1):
+def absorption_cross_section(f0, wavelength=1):
     '''
-    lamb is the wavelength lambda in meter.
+    converts the complex atomic form factor f0 and the wavelength in
+    meter to the real valued atomic photoabsorption cross section in m**2.
+
+    \( \sigma_\mathrm{scatt} = 2 r_e f^0_2 \)
+    with the classical electron radius
+    \( r_e = 2.81794 \times 10^{-15} m\)
     '''
-    return -2*2.8e-15 * lamb * np.imag(f)
+    return -2*const['classical electron radius'][0] * wavelength * np.imag(f0)
 
 
 def atomic_number2element(atomic_number):
