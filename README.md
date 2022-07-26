@@ -3,8 +3,7 @@ Coherent Diffraction Imaging Tools for Python
 
 ## Installation
 
-From SLAC machine with internet access (e.g. pslogin) download repo using
-
+Download the repo
 ```
 git clone https://github.com/skuschel/diffractionimaging
 ```
