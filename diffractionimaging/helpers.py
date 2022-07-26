@@ -1,20 +1,25 @@
 import numpy as np
 import pickle as pkl
 
-def fftshift(sig):
-    return np.fft.fftshift(sig)
+
+__all__ = ['fft', 'ifft', 'addcolorbar', 'bindata']
+
+
+fftshift = np.fft.fftshift
 
 
 def fft(sig):
+    '''
+    like `np.fft`, but keeps zero frequencies centered.
+    '''
     return np.fft.fftshift(np.fft.fft(np.fft.fftshift(sig)))
 
 
 def ifft(sig):
+    '''
+    like `np.ifft`, but keeps zero frequencies centered.
+    '''
     return np.fft.fftshift(np.fft.ifft(np.fft.fftshift(sig)))
-
-
-def conv(f, g):
-    return np.real(ifft(fft(f)*fft(g)))
 
 
 def pkl_save(filename, data):
@@ -28,11 +33,6 @@ def pkl_load(filename):
         data = pkl.load(f)
     print("read file {}\r".format(filename))
     return data
-
-
-'''
-useful routines for analysis or plotting, which dont really belong somewhere else.
-'''
 
 
 def addcolorbar(ax, im, pos='right', size='5%', pad=0.05, orientation='vertical',
