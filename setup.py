@@ -40,6 +40,7 @@ setup(name='diffractionimaging',
                         # does not work for python 2
                         'numpy>=1.8', 'numpy>=1.9;python_version<"3.0"',
                         'scipy', 'future', 'urllib3', 'numexpr',
+                        'BeautifulSoup',
                         'functools32;python_version<"3.0"'],
       extras_require = {},
       keywords = ['diffraction imaging', 'cluster size', 'cdi', 'physics', 'optics',
