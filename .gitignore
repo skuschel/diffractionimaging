@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 # Data downloads
-./diffractionimaging/henke/*.nff
+diffractionimaging/henke/*.nff
+diffractionimaging/henke/readme.txt
