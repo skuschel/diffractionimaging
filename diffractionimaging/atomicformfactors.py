@@ -36,6 +36,10 @@ __all__ = [
     "atomic_mass_amu",
     "atomic_mass_kg",
     "atomic_mass",
+    "atomic_form_factor",
+    "refractive_index",
+    "delta",
+    "beta",
 ]
 
 
@@ -237,11 +241,11 @@ def atomic_form_factor(element, energy_ev):
     '''
     returns the atomic form factor f0 for a queried element at a queried energy in eV.
     f0 is interpolated from tabulated databases
-    
+
     input:
         element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
         energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
-    
+
     returns:
         f0
     '''
@@ -251,18 +255,41 @@ def atomic_form_factor(element, energy_ev):
     f0_interp = f1_interp + 1j * f2_interp  # atomic scattering factor
     return f0_interp
 
-def refractive_index(element, atomic_density, energy_ev):
+
+def refractive_index(element, atom_density, energy_ev):
+    '''
+    returns the refractive index for a given element, atom density and photon energy in eV
+
+    input:
+        element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
+        atom_density - atom number density in 1/m^3
+        energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
+
+    returns:
+        n - refractive index
+    '''
     f0 = atomic_form_factor(element, energy_ev)
+    wavelength = ev2wavelength(energy_ev)
     n = 1 - atom_density * const['classical electron radius'][0] * wavelength**2/2/np.pi * f0
-    atom_cross_section = scattering_cross_section(f0)
     return n
 
 
 def delta(n):
+    '''
+    n = 1 - delta + 1j*beta
+        n - refractive index
+        delta - phase coefficient
+        beta - absorption coefficient
+    '''
     return (1.0-np.real(n))
 
 
 def beta(n):
+    '''
+    n = 1 - delta + 1j*beta
+        n - refractive index
+        delta - phase coefficient
+        beta - absorption coefficient
+    '''
     return -np.imag(n)
-
 
