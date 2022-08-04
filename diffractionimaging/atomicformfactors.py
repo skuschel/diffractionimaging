@@ -25,11 +25,11 @@ from scipy.constants import physical_constants as const
 
 
 __all__ = [
-    "atomicformfactor_henke",
-    "atomicformfactor_nist",
-    "ev2lambda",
-    "sigmascatt",
-    "sigmaabsorb",
+    "atomic_form_factor_henke",
+    "atomic_form_factor_nist",
+    "ev2wavelength",
+    "scattering_cross_section",
+    "absorption_cross_section",
     "atomic_number2element",
     "element2atomic_number",
 ]
