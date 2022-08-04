@@ -13,15 +13,6 @@ cd diffractionimaging
 pip install --user -e .
 ```
 
-Download the recent atomic scattering factor data from
-```
-https://henke.lbl.gov/optical_constants/sf.tar.gz
-```
-and unzip the the content into subdirectory
-```
-./diffractionimaging/henke/
-```
-
 Test installation by running a python console somewhere else and execute
 ```python
 import diffractionimaging
