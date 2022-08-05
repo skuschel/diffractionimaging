@@ -23,6 +23,11 @@ from urllib.parse import urljoin
 import numpy as np
 from scipy.constants import physical_constants as const
 
+import os
+from appdirs import user_data_dir
+import urllib
+import zipfile
+
 
 __all__ = [
     "atomic_form_factor_henke",
@@ -98,14 +103,47 @@ atomic_mass_dict = {'h': 1.008, 'he': 4.003, 'li': 6.941, 'be': 9.012,
 triple_point_density_dict = {'ne': 1444, 'ar': 1636, 'kr': 2900, 'xe': 3500}
 
 
+def _download_and_unzip(url, extract_dir):
+    '''
+    'https://stackoverflow.com/questions/6861323/download-and-unzip-file-with-python'
+    '''
+    print("Starting Download ...")
+    zip_path, _ = urllib.request.urlretrieve(url)
+    print("Extracting Files ...")
+    with zipfile.ZipFile(zip_path, "r") as f:
+        f.extractall(extract_dir)
+    print("Done!")
+
+
+def _data_dir():
+    return user_data_dir(__name__, __author__)
+
+
+def _download_henke_db():
+    url = "https://henke.lbl.gov/optical_constants/sf.tar.gz"
+    extract_dir = os.path.join(_data_dir(), 'henke')
+    os.makedirs(extract_dir, exist_ok=True)
+    download_and_unzip(url, extract_dir)
+
+
 def atomic_form_factor_henke(element):
     """
-    atomic form factor from henke in complex form.
+    energy array and atomic form factor array from henke in complex form.
 
     returns:
       eV, f0
     """
-    return _load_local_henke(element.lower())
+    # urltmplate = "https://henke.lbl.gov/optical_constants/sf/{element}.nff"
+    # url = urltmplate.format(element=element)
+    filename = os.path.join(_data_dir(), "henke", "{element}.nff".format(element=element))
+    if not os.path.exists(filename):
+        _download_henke_db()
+
+    energy_ev, f1, f2 = np.loadtxt(filename, skiprows=1, unpack=True)
+    f1[f1 == -9.99900e+03] = np.nan
+    f2[f2 == -9.99900e+03] = np.nan
+    f0 = f1 + 1j * f2
+    return energy_ev, f0
 
 
 def _load_local_henke(element):
