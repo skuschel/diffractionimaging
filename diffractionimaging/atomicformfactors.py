@@ -272,7 +272,7 @@ def atomic_mass(element):
     '''
     returns the atomic mass in kg for a given element symbol
     '''
-    return atomic_mass_kg(elemen.lower()t)
+    return atomic_mass_kg(elemen.lower())
 
 
 def atomic_form_factor(element, energy_ev):
