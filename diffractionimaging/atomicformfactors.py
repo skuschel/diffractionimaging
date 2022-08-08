@@ -25,8 +25,8 @@ from scipy.constants import physical_constants as const
 
 import os
 from appdirs import user_data_dir
-import urllib
-import zipfile
+import urllib.request
+import tarfile
 
 
 __all__ = [
@@ -46,6 +46,9 @@ __all__ = [
     "delta",
     "beta",
 ]
+
+
+__author__ = "KuschelUlmer"
 
 
 symbols = ["h", "he",
@@ -103,63 +106,48 @@ atomic_mass_dict = {'h': 1.008, 'he': 4.003, 'li': 6.941, 'be': 9.012,
 triple_point_density_dict = {'ne': 1444, 'ar': 1636, 'kr': 2900, 'xe': 3500}
 
 
-def _download_and_unzip(url, extract_dir):
+def _download_and_unzip_tar(url, extract_dir):
     '''
     'https://stackoverflow.com/questions/6861323/download-and-unzip-file-with-python'
     '''
     print("Starting Download ...")
-    zip_path, _ = urllib.request.urlretrieve(url)
+    tar_path, _ = urllib.request.urlretrieve(url)
     print("Extracting Files ...")
-    with zipfile.ZipFile(zip_path, "r") as f:
-        f.extractall(extract_dir)
+    tar_file = tarfile.open(tar_path)
+    tar_file.extractall(extract_dir)
+    tar_file.close()
     print("Done!")
 
 
 def _data_dir():
-    return user_data_dir(__name__, __author__)
+    return user_data_dir('diffractionimaging', 'KuschelUlmer')
+
+
+def _henke_dir():
+    return os.path.join(_data_dir(), 'henke')
 
 
 def _download_henke_db():
     url = "https://henke.lbl.gov/optical_constants/sf.tar.gz"
-    extract_dir = os.path.join(_data_dir(), 'henke')
-    os.makedirs(extract_dir, exist_ok=True)
-    download_and_unzip(url, extract_dir)
+    os.makedirs(_henke_dir, exist_ok=True)
+    _download_and_unzip_tar(url, _henke_dir())
 
 
-def atomic_form_factor_henke(element):
+def _load_local_henke(element):
     """
     energy array and atomic form factor array from henke in complex form.
 
     returns:
       eV, f0
     """
-    # urltmplate = "https://henke.lbl.gov/optical_constants/sf/{element}.nff"
-    # url = urltmplate.format(element=element)
-    filename = os.path.join(_data_dir(), "henke", "{element}.nff".format(element=element))
+    filename = os.path.join(_henke_dir(), "{element}.nff".format(element=element.lower()))
     if not os.path.exists(filename):
         _download_henke_db()
 
     energy_ev, f1, f2 = np.loadtxt(filename, skiprows=1, unpack=True)
     f1[f1 == -9.99900e+03] = np.nan
     f2[f2 == -9.99900e+03] = np.nan
-    f0 = f1 + 1j * f2
-    return energy_ev, f0
-
-
-def _load_local_henke(element):
-    '''
-    loads atomic form factor for a given element symbol from locally stored data
-
-    returns:
-      eV, f0
-    '''
-    import os
-    energy_ev, f1, f2 = np.loadtxt(os.path.dirname(__file__) + '/henke/' + element.lower() +
-                                   '.nff', skiprows=1, unpack=True)
-    f1[f1 == -9.99900e+03] = np.nan
-    f2[f2 == -9.99900e+03] = np.nan
-    f0 = f1 + 1j * f2
-    return energy_ev, f0
+    return energy_ev, f1, f2
 
 
 @functools.lru_cache(maxsize=None)
@@ -275,23 +263,47 @@ def atomic_mass(element):
     return atomic_mass_kg(elemen.lower())
 
 
-def atomic_form_factor(element, energy_ev):
+def atomic_form_factor_henke(element, energy_ev=None):
     '''
     returns the atomic form factor f0 for a queried element at a queried energy in eV.
-    f0 is interpolated from tabulated databases
+    f0 is interpolated from tabulated henke database.
+    if called with only one argument, all values from the database will be returned
 
     input:
         element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
         energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
+                    if energy_ev is None, all points from the database will be returned
 
     returns:
-        f0
+        f0, energy_ev
     '''
     henke_energy_ev, f1, f2 = _load_local_henke(element)
-    f1_interp = np.interp(energy_ev, henke_energy_ev, f1)
-    f2_interp = np.interp(energy_ev, henke_energy_ev, f2)
+    if energy_ev is not None:
+        f1_interp = np.interp(energy_ev, henke_energy_ev, f1)
+        f2_interp = np.interp(energy_ev, henke_energy_ev, f2)
+    else:
+        f1_interp = f1
+        f2_interp = f2
+        energy_ev = henke_energy_ev
     f0_interp = f1_interp + 1j * f2_interp  # atomic scattering factor
-    return f0_interp
+    return f0_interp, energy_ev
+
+
+def atomic_form_factor(element, energy_ev=None):
+    '''
+    returns the atomic form factor f0 for a queried element at a queried energy in eV.
+    f0 is interpolated from tabulated henke database.
+    if called with only one argument, all values from the database will be returned
+
+    input:
+        element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
+        energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
+                    if energy_ev is None, all points from the database will be returned
+
+    returns:
+        f0, energy_ev
+    '''
+    return atomic_form_factor_henke(element, energy_ev)
 
 
 def refractive_index(element, atom_density, energy_ev):
