@@ -110,6 +110,8 @@ def _download_and_unzip_tar(url, extract_dir):
     '''
     'https://stackoverflow.com/questions/6861323/download-and-unzip-file-with-python'
     '''
+    print("Destination Directory:")
+    print(extract_dir)
     print("Starting Download ...")
     tar_path, _ = urllib.request.urlretrieve(url)
     print("Extracting Files ...")
@@ -120,17 +122,18 @@ def _download_and_unzip_tar(url, extract_dir):
 
 
 def _data_dir():
-    return user_data_dir('diffractionimaging', 'KuschelUlmer')
+    return user_data_dir('diffractionimaging', __author__)
 
 
-def _henke_dir():
-    return os.path.join(_data_dir(), 'henke')
+def _user_data_subdir(subdir):
+    return os.path.join(_data_dir(), subdir)
 
 
 def _download_henke_db():
     url = "https://henke.lbl.gov/optical_constants/sf.tar.gz"
-    os.makedirs(_henke_dir(), exist_ok=True)
-    _download_and_unzip_tar(url, _henke_dir())
+    _henke_dir = _user_data_subdir('henke')
+    os.makedirs(_henke_dir, exist_ok=True)
+    _download_and_unzip_tar(url, _henke_dir)
 
 
 def _load_local_henke(element):
@@ -140,7 +143,9 @@ def _load_local_henke(element):
     returns:
       eV, f0
     """
-    filename = os.path.join(_henke_dir(), "{element}.nff".format(element=element.lower()))
+    _henke_dir = _user_data_subdir('henke')
+    filename = os.path.join(_henke_dir, "{element}.nff".format(element=element.lower()))
+
     if not os.path.exists(filename):
         _download_henke_db()
 
@@ -148,17 +153,6 @@ def _load_local_henke(element):
     f1[f1 == -9.99900e+03] = np.nan
     f2[f2 == -9.99900e+03] = np.nan
     return energy_ev, f1, f2
-
-
-@functools.lru_cache(maxsize=None)
-def _download_henke(element):
-    urltmplate = "https://henke.lbl.gov/optical_constants/sf/{element}.nff"
-    url = urltmplate.format(element=element)
-    r = requests.get(url)
-    data = np.genfromtxt(StringIO(r.text))[1:]
-    f = data[:, 1] + 1j * data[:, 2]
-    eV = data[:, 0]
-    return eV, f
 
 
 @functools.lru_cache(maxsize=None)

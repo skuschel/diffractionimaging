@@ -1,21 +1,18 @@
-import os
-from appdirs import user_data_dir
-import urllib.request
-import tarfile
+# This file is NOT part of the diffractionimaging package but serves 
+# exclusively the purpose of downloading the atomic scattering factor
+# database from "https://henke.lbl.gov/optical_constants/sf.tar.gz".
 
+# Requires internet connection! 
 
-url = "https://henke.lbl.gov/optical_constants/sf.tar.gz"
-data_dir = user_data_dir('diffractionimaging', 'KuschelUlmer')
-extract_dir = os.path.join(data_dir, 'henke')
-print("Destination Folder:")
-print(extract_dir)
-os.makedirs(extract_dir, exist_ok=True)
+# Usage: Run this file using 
+#     'python ./download_henke.py'
+# from within it's directory
 
-print("Starting Download ...")
-tar_path, _ = urllib.request.urlretrieve(url)
-print("Extracting Files ...")
-file = tarfile.open(tar_path)
-file.extractall(extract_dir)
-file.close()
-print("Done!")
+# Copyright (C) 2022 Anatoli Ulmer
+
+from atomicformfactors import atomic_form_factor_henke
+
+# Try to load data for last element 'Zr'. If the data file does not
+# exist, it will download the data automatically from the internet.
+atomic_form_factor_henke('Zr')
 
