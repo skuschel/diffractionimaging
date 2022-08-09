@@ -129,7 +129,7 @@ def _henke_dir():
 
 def _download_henke_db():
     url = "https://henke.lbl.gov/optical_constants/sf.tar.gz"
-    os.makedirs(_henke_dir, exist_ok=True)
+    os.makedirs(_henke_dir(), exist_ok=True)
     _download_and_unzip_tar(url, _henke_dir())
 
 
