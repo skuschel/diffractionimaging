@@ -33,7 +33,9 @@ __all__ = [
     "atomic_form_factor_henke",
     "atomic_form_factor_nist",
     "ev2wavelength",
+    "wavelength2ev",
     "scattering_cross_section",
+    "total_cross_section",
     "absorption_cross_section",
     "atomic_number2element",
     "element2atomic_number",
@@ -181,14 +183,25 @@ def atomic_form_factor_nist(element):
 
 def ev2wavelength(energy_ev):
     """
-    returns wavelength in meter.
+    input: energy in eV
+    output: wavelength in meter.
     """
     energy = energy_ev * const['electron volt-joule relationship'][0]
     wavelength = const['Planck constant'][0] * const['speed of light in vacuum'][0] / energy  # m
     return wavelength
 
 
-def scattering_cross_section(f0):
+def wavelength2ev(wavelength):
+    """
+    input: wavelength in meter
+    output: energy in eV
+    """
+    energy = const['Planck constant'][0] * const['speed of light in vacuum'][0] / wavelength  # J
+    energy_ev = energy / const['electron volt-joule relationship'][0]
+    return energy_ev
+
+
+def scattering_cross_section(element='ne', energy_ev=None, f0=None):
     r"""
     converts the complex atomic form factor f0 to the real valued
     scattering cross section in m**2.
@@ -197,19 +210,30 @@ def scattering_cross_section(f0):
     with the classical electron radius
     $ r_e = 2.81794 \times 10^{-15} m $
     """
+    if f0 is None:
+        f0, energy_ev = atomic_form_factor(element=element.lower(), energy_ev=energy_ev)
     return 8 / 3 * np.pi * const["classical electron radius"][0] ** 2 * np.abs(f0) ** 2
 
 
-def absorption_cross_section(f0, wavelength=1):
+def total_cross_section(element='ne', energy_ev=None, f0=None):
     r"""
     converts the complex atomic form factor f0 and the wavelength in
     meter to the real valued atomic photoabsorption cross section in m**2.
 
-    \( \sigma_\mathrm{scatt} = 2 r_e f^0_2 \)
+    \( \sigma_\mathrm{total} = 2 \lambda r_e f^0_2 \)
     with the classical electron radius
     \( r_e = 2.81794 \times 10^{-15} m\)
     """
-    return -2 * const["classical electron radius"][0] * wavelength * np.imag(f0)
+    wavelength = ev2wavelength(energy_ev)
+    if f0 is None:
+        f0, energy_ev = atomic_form_factor(element=element.lower(), energy_ev=energy_ev)
+    return 2 * const["classical electron radius"][0] * wavelength * np.imag(f0)
+
+
+def absorption_cross_section(element='ne', energy_ev=None, f0=None):
+    sigma_tot = total_cross_section(element=element, energy_ev=energy_ev, f0=f0)
+    sigma_sca = scattering_cross_section(element=element, energy_ev=energy_ev, f0=f0)
+    return sigma_tot - sigma_sca
 
 
 def atomic_number2element(atomic_number):
@@ -247,14 +271,14 @@ def atomic_mass_kg(element):
     '''
     returns the atomic mass in kg for a given element symbol
     '''
-    return atomic_mass_amu(element.lower()) * const['atomic mass constant']
+    return atomic_mass_amu(element.lower()) * const['atomic mass constant'][0]
 
 
 def atomic_mass(element):
     '''
     returns the atomic mass in kg for a given element symbol
     '''
-    return atomic_mass_kg(elemen.lower())
+    return atomic_mass_kg(element.lower())
 
 
 def atomic_form_factor_henke(element, energy_ev=None):
@@ -297,7 +321,7 @@ def atomic_form_factor(element, energy_ev=None):
     returns:
         f0, energy_ev
     '''
-    return atomic_form_factor_henke(element, energy_ev)
+    return atomic_form_factor_henke(element.lower(), energy_ev)
 
 
 def refractive_index(element, atom_density, energy_ev):
@@ -312,7 +336,7 @@ def refractive_index(element, atom_density, energy_ev):
     returns:
         n - refractive index
     '''
-    f0 = atomic_form_factor(element, energy_ev)
+    f0, energy_ev = atomic_form_factor(element.lower(), energy_ev)
     wavelength = ev2wavelength(energy_ev)
     n = 1 - atom_density * const['classical electron radius'][0] * wavelength**2/2/np.pi * f0
     return n
@@ -320,7 +344,7 @@ def refractive_index(element, atom_density, energy_ev):
 
 def delta(n):
     '''
-    n = 1 - delta + 1j*beta
+    n = 1 - delta - 1j*beta
         n - refractive index
         delta - phase coefficient
         beta - absorption coefficient
@@ -330,7 +354,7 @@ def delta(n):
 
 def beta(n):
     '''
-    n = 1 - delta + 1j*beta
+    n = 1 - delta - 1j*beta
         n - refractive index
         delta - phase coefficient
         beta - absorption coefficient
