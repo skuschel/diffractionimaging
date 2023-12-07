@@ -59,7 +59,7 @@ def lru_cache_bool(maxlen=1):
 
         @functools.wraps(f)
         def ret(img):
-            if not img.dtype == np.bool:
+            if not img.dtype == bool:
                 # print('no cache')
                 # kein Caching
                 return f(img)
