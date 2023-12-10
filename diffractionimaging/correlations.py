@@ -115,7 +115,7 @@ def second_order_correlation_direct(img):
     # np.product(img.shape) is an apporximation to normalize by
     # the number of pixels within this correlation. However, this overestimates
     # the number of pixels towards the edge of the image.
-    ret = ss.fftconvolve(img, img[::-1, ::-1], mode='same') / s**2 * np.product(img.shape)
+    ret = ss.fftconvolve(img, np.flip(img), mode='same') / s**2 * np.product(img.shape)
     return ret
 
 
