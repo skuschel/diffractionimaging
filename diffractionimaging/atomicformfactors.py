@@ -23,12 +23,19 @@ from urllib.parse import urljoin
 import numpy as np
 from scipy.constants import physical_constants as const
 
+import os
+from appdirs import user_data_dir
+import urllib.request
+import tarfile
+
 
 __all__ = [
     "atomic_form_factor_henke",
     "atomic_form_factor_nist",
     "ev2wavelength",
+    "wavelength2ev",
     "scattering_cross_section",
+    "total_cross_section",
     "absorption_cross_section",
     "atomic_number2element",
     "element2atomic_number",
@@ -36,84 +43,118 @@ __all__ = [
     "atomic_mass_amu",
     "atomic_mass_kg",
     "atomic_mass",
+    "atomic_form_factor",
+    "refractive_index",
+    "delta",
+    "beta",
 ]
 
 
-symbols = ["H", "He",
-           "Li", "Be", "B", "C", "N", "O", "F", "Ne",
-           "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar",
-           "K", "Ca",
-           "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-           "Ga", "Ge", "As", "Se", "Br", "Kr",
-           "Rb", "Sr",
-           "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd",
-           "In", "Sn", "Sb", "Te", "I", "Xe",
-           "Cs", "Ba",
-           "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
-           "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu",
-           "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg",
-           "Tl", "Pb", "Bi", "Po", "At", "Rn",
-           "Fr", "Ra",
-           "Ac", "Th", "Pa", "U", "Np", "Pu", "Am", "Cm",
-           "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr",
-           "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn",
-           "Nh", "Fl", "Mc", "Lv", "Ts", "Og"]
+__author__ = "KuschelUlmer"
 
 
-atomic_mass_dict = {'H': 1.008, 'HE': 4.003, 'LI': 6.941, 'BE': 9.012,
-                    'B': 10.811, 'C': 12.011, 'N': 14.007, 'O': 15.999,
-                    'F': 18.998, 'NE': 20.180, 'NA': 22.990, 'MG': 24.305,
-                    'AL': 26.982, 'SI': 28.086, 'P': 30.974, 'S': 32.066,
-                    'CL': 35.453, 'AR': 39.948, 'K': 39.098, 'CA': 40.078,
-                    'SC': 44.956, 'TI': 47.867, 'V': 50.942, 'CR': 51.996,
-                    'MN': 54.938, 'FE': 55.845, 'CO': 58.933, 'NI': 58.693,
-                    'CU': 63.546, 'ZN': 65.38, 'GA': 69.723, 'GE': 72.631,
-                    'AS': 74.922, 'SE': 78.971, 'BR': 79.904, 'KR': 84.798,
-                    'RB': 84.468, 'SR': 87.62, 'Y': 88.906, 'ZR': 91.224,
-                    'NB': 92.906, 'MO': 95.95, 'TC': 98.907, 'RU': 101.07,
-                    'RH': 102.906, 'PD': 106.42, 'AG': 107.868, 'CD': 112.414,
-                    'IN': 114.818, 'SN': 118.711, 'SB': 121.760, 'TE': 126.7,
-                    'I': 126.904, 'XE': 131.294, 'CS': 132.905, 'BA': 137.328,
-                    'LA': 138.905, 'CE': 140.116, 'PR': 140.908, 'ND': 144.243,
-                    'PM': 144.913, 'SM': 150.36, 'EU': 151.964, 'GD': 157.25,
-                    'TB': 158.925, 'DY': 162.500, 'HO': 164.930, 'ER': 167.259,
-                    'TM': 168.934, 'YB': 173.055, 'LU': 174.967, 'HF': 178.49,
-                    'TA': 180.948, 'W': 183.84, 'RE': 186.207, 'OS': 190.23,
-                    'IR': 192.217, 'PT': 195.085, 'AU': 196.967, 'HG': 200.592,
-                    'TL': 204.383, 'PB': 207.2, 'BI': 208.980, 'PO': 208.982,
-                    'AT': 209.987, 'RN': 222.081, 'FR': 223.020, 'RA': 226.025,
-                    'AC': 227.028, 'TH': 232.038, 'PA': 231.036, 'U': 238.029,
-                    'NP': 237, 'PU': 244, 'AM': 243, 'CM': 247, 'BK': 247,
-                    'CT': 251, 'ES': 252, 'FM': 257, 'MD': 258, 'NO': 259,
-                    'LR': 262, 'RF': 261, 'DB': 262, 'SG': 266, 'BH': 264,
-                    'HS': 269, 'MT': 268, 'DS': 271, 'RG': 272, 'CN': 285,
-                    'NH': 284, 'FL': 289, 'MC': 288, 'LV': 292, 'TS': 294,
-                    'OG': 294}
+symbols = ["h", "he",
+           "li", "be", "b", "c", "n", "o", "f", "ne",
+           "na", "mg", "al", "si", "p", "s", "cl", "ar",
+           "k", "ca",
+           "sc", "ti", "v", "cr", "mn", "fe", "co", "ni", "cu", "zn",
+           "ga", "ge", "as", "se", "br", "kr",
+           "rb", "sr",
+           "y", "zr", "nb", "mo", "tc", "ru", "rh", "pd", "ag", "cd",
+           "in", "sn", "sb", "te", "i", "xe",
+           "cs", "ba",
+           "la", "ce", "pr", "nd", "pm", "sm", "eu", "gd",
+           "tb", "dy", "ho", "er", "tm", "yb", "lu",
+           "hf", "ta", "w", "re", "os", "ir", "pt", "au", "hg",
+           "tl", "pb", "bi", "po", "at", "rn",
+           "fr", "ra",
+           "ac", "th", "pa", "u", "np", "pu", "am", "cm",
+           "bk", "cf", "es", "fm", "md", "no", "lr",
+           "rf", "db", "sg", "bh", "hs", "mt", "ds", "rg", "cn",
+           "nh", "fl", "mc", "lv", "ts", "og"]
+
+
+atomic_mass_dict = {'h': 1.008, 'he': 4.003, 'li': 6.941, 'be': 9.012,
+                    'b': 10.811, 'c': 12.011, 'n': 14.007, 'o': 15.999,
+                    'f': 18.998, 'ne': 20.180, 'na': 22.990, 'mg': 24.305,
+                    'al': 26.982, 'si': 28.086, 'p': 30.974, 's': 32.066,
+                    'cl': 35.453, 'ar': 39.948, 'k': 39.098, 'ca': 40.078,
+                    'sc': 44.956, 'ti': 47.867, 'v': 50.942, 'cr': 51.996,
+                    'mn': 54.938, 'fe': 55.845, 'co': 58.933, 'ni': 58.693,
+                    'cu': 63.546, 'zn': 65.38, 'ga': 69.723, 'ge': 72.631,
+                    'as': 74.922, 'se': 78.971, 'br': 79.904, 'kr': 84.798,
+                    'rb': 84.468, 'sr': 87.62, 'y': 88.906, 'zr': 91.224,
+                    'nb': 92.906, 'mo': 95.95, 'tc': 98.907, 'ru': 101.07,
+                    'rh': 102.906, 'pd': 106.42, 'ag': 107.868, 'cd': 112.414,
+                    'in': 114.818, 'sn': 118.711, 'sb': 121.760, 'te': 126.7,
+                    'i': 126.904, 'xe': 131.294, 'cs': 132.905, 'ba': 137.328,
+                    'la': 138.905, 'ce': 140.116, 'pr': 140.908, 'nd': 144.243,
+                    'pm': 144.913, 'sm': 150.36, 'eu': 151.964, 'gd': 157.25,
+                    'tb': 158.925, 'dy': 162.500, 'ho': 164.930, 'er': 167.259,
+                    'tm': 168.934, 'yb': 173.055, 'lu': 174.967, 'hf': 178.49,
+                    'ta': 180.948, 'w': 183.84, 're': 186.207, 'os': 190.23,
+                    'ir': 192.217, 'pt': 195.085, 'au': 196.967, 'hg': 200.592,
+                    'tl': 204.383, 'pb': 207.2, 'bi': 208.980, 'po': 208.982,
+                    'at': 209.987, 'rn': 222.081, 'fr': 223.020, 'ra': 226.025,
+                    'ac': 227.028, 'th': 232.038, 'pa': 231.036, 'u': 238.029,
+                    'np': 237, 'pu': 244, 'am': 243, 'cm': 247, 'bk': 247,
+                    'ct': 251, 'es': 252, 'fm': 257, 'md': 258, 'no': 259,
+                    'lr': 262, 'rf': 261, 'db': 262, 'sg': 266, 'bh': 264,
+                    'hs': 269, 'mt': 268, 'ds': 271, 'rg': 272, 'cn': 285,
+                    'nh': 284, 'fl': 289, 'mc': 288, 'lv': 292, 'ts': 294,
+                    'og': 294}
 
 
 triple_point_density_dict = {'ne': 1444, 'ar': 1636, 'kr': 2900, 'xe': 3500}
 
 
-def atomic_form_factor_henke(element):
+def _download_and_unzip_tar(url, extract_dir):
+    '''
+    'https://stackoverflow.com/questions/6861323/download-and-unzip-file-with-python'
+    '''
+    print("Destination Directory:")
+    print(extract_dir)
+    print("Starting Download ...")
+    tar_path, _ = urllib.request.urlretrieve(url)
+    print("Extracting Files ...")
+    tar_file = tarfile.open(tar_path)
+    tar_file.extractall(extract_dir)
+    tar_file.close()
+    print("Done!")
+
+
+def _data_dir():
+    return user_data_dir('diffractionimaging', __author__)
+
+
+def _user_data_subdir(subdir):
+    return os.path.join(_data_dir(), subdir)
+
+
+def _download_henke_db():
+    url = "https://henke.lbl.gov/optical_constants/sf.tar.gz"
+    _henke_dir = _user_data_subdir('henke')
+    os.makedirs(_henke_dir, exist_ok=True)
+    _download_and_unzip_tar(url, _henke_dir)
+
+
+def _load_local_henke(element):
     """
-    atomic form factor from henke in complex form.
+    energy array and atomic form factor array from henke in complex form.
 
     returns:
-      eV, f
+      eV, f0
     """
-    element = element.lower()
-    return _download_henke(element)
+    _henke_dir = _user_data_subdir('henke')
+    filename = os.path.join(_henke_dir, "{element}.nff".format(element=element.lower()))
 
+    if not os.path.exists(filename):
+        _download_henke_db()
 
-@functools.lru_cache(maxsize=None)
-def _download_henke(element):
-    urltmplate = "https://henke.lbl.gov/optical_constants/sf/{element}.nff"
-    url = urltmplate.format(element=element)
-    r = requests.get(url)
-    data = np.genfromtxt(StringIO(r.text))[1:]
-    f = data[:, 1] + 1j * data[:, 2]
-    eV = data[:, 0]
-    return eV, f
+    energy_ev, f1, f2 = np.loadtxt(filename, skiprows=1, unpack=True)
+    f1[f1 == -9.99900e+03] = np.nan
+    f2[f2 == -9.99900e+03] = np.nan
+    return energy_ev, f1, f2
 
 
 @functools.lru_cache(maxsize=None)
@@ -122,7 +163,7 @@ def atomic_form_factor_nist(element):
     atomic form factor from nist in complex form.
 
     returns:
-      eV, f
+      eV, f0
     """
     Z = element2atomic_number(element)
     # baseurl = 'https://physics.nist.gov/cgi-bin'
@@ -142,14 +183,25 @@ def atomic_form_factor_nist(element):
 
 def ev2wavelength(energy_ev):
     """
-    returns wavelength in meter.
+    input: energy in eV
+    output: wavelength in meter.
     """
     energy = energy_ev * const['electron volt-joule relationship'][0]
     wavelength = const['Planck constant'][0] * const['speed of light in vacuum'][0] / energy  # m
     return wavelength
 
 
-def scattering_cross_section(f0):
+def wavelength2ev(wavelength):
+    """
+    input: wavelength in meter
+    output: energy in eV
+    """
+    energy = const['Planck constant'][0] * const['speed of light in vacuum'][0] / wavelength  # J
+    energy_ev = energy / const['electron volt-joule relationship'][0]
+    return energy_ev
+
+
+def scattering_cross_section(element='ne', energy_ev=None, f0=None):
     r"""
     converts the complex atomic form factor f0 to the real valued
     scattering cross section in m**2.
@@ -158,19 +210,30 @@ def scattering_cross_section(f0):
     with the classical electron radius
     $ r_e = 2.81794 \times 10^{-15} m $
     """
+    if f0 is None:
+        f0, energy_ev = atomic_form_factor(element=element.lower(), energy_ev=energy_ev)
     return 8 / 3 * np.pi * const["classical electron radius"][0] ** 2 * np.abs(f0) ** 2
 
 
-def absorption_cross_section(f0, wavelength=1):
+def total_cross_section(element='ne', energy_ev=None, f0=None):
     r"""
     converts the complex atomic form factor f0 and the wavelength in
     meter to the real valued atomic photoabsorption cross section in m**2.
 
-    \( \sigma_\mathrm{scatt} = 2 r_e f^0_2 \)
+    \( \sigma_\mathrm{total} = 2 \lambda r_e f^0_2 \)
     with the classical electron radius
     \( r_e = 2.81794 \times 10^{-15} m\)
     """
-    return -2 * const["classical electron radius"][0] * wavelength * np.imag(f0)
+    wavelength = ev2wavelength(energy_ev)
+    if f0 is None:
+        f0, energy_ev = atomic_form_factor(element=element.lower(), energy_ev=energy_ev)
+    return 2 * const["classical electron radius"][0] * wavelength * np.imag(f0)
+
+
+def absorption_cross_section(element='ne', energy_ev=None, f0=None):
+    sigma_tot = total_cross_section(element=element, energy_ev=energy_ev, f0=f0)
+    sigma_sca = scattering_cross_section(element=element, energy_ev=energy_ev, f0=f0)
+    return sigma_tot - sigma_sca
 
 
 def atomic_number2element(atomic_number):
@@ -184,7 +247,7 @@ def element2atomic_number(element):
     """
     returns atomic number for a given element symbol
     """
-    return symbols.index(element) + 1
+    return symbols.index(element.lower()) + 1
 
 
 def absorption_length(n, wavelength):
@@ -201,19 +264,100 @@ def atomic_mass_amu(element):
     '''
     returns the atomic mass in atomic mass units for a given element symbol
     '''
-    return atomic_mass_dict[element.upper()]
+    return atomic_mass_dict[element.lower()]
 
 
 def atomic_mass_kg(element):
     '''
     returns the atomic mass in kg for a given element symbol
     '''
-    return atomic_mass_amu(element) * const['atomic mass constant']
+    return atomic_mass_amu(element.lower()) * const['atomic mass constant'][0]
 
 
 def atomic_mass(element):
     '''
     returns the atomic mass in kg for a given element symbol
     '''
-    return atomic_mass_kg(element)
+    return atomic_mass_kg(element.lower())
+
+
+def atomic_form_factor_henke(element, energy_ev=None):
+    '''
+    returns the atomic form factor f0 for a queried element at a queried energy in eV.
+    f0 is interpolated from tabulated henke database.
+    if called with only one argument, all values from the database will be returned
+
+    input:
+        element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
+        energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
+                    if energy_ev is None, all points from the database will be returned
+
+    returns:
+        f0, energy_ev
+    '''
+    henke_energy_ev, f1, f2 = _load_local_henke(element)
+    if energy_ev is not None:
+        f1_interp = np.interp(energy_ev, henke_energy_ev, f1)
+        f2_interp = np.interp(energy_ev, henke_energy_ev, f2)
+    else:
+        f1_interp = f1
+        f2_interp = f2
+        energy_ev = henke_energy_ev
+    f0_interp = f1_interp + 1j * f2_interp  # atomic scattering factor
+    return f0_interp, energy_ev
+
+
+def atomic_form_factor(element, energy_ev=None):
+    '''
+    returns the atomic form factor f0 for a queried element at a queried energy in eV.
+    f0 is interpolated from tabulated henke database.
+    if called with only one argument, all values from the database will be returned
+
+    input:
+        element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
+        energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
+                    if energy_ev is None, all points from the database will be returned
+
+    returns:
+        f0, energy_ev
+    '''
+    return atomic_form_factor_henke(element.lower(), energy_ev)
+
+
+def refractive_index(element, atom_density, energy_ev):
+    '''
+    returns the refractive index for a given element, atom density and photon energy in eV
+
+    input:
+        element - element symbol consisting of one or two letters, e.g., 'H', 'Xe', 'Mg'
+        atom_density - atom number density in 1/m^3
+        energy_ev - energy in electronvolts in the range 10eV < energyInElectronVolts < 30000eV
+
+    returns:
+        n - refractive index
+    '''
+    f0, energy_ev = atomic_form_factor(element.lower(), energy_ev)
+    wavelength = ev2wavelength(energy_ev)
+    n = 1 - atom_density * const['classical electron radius'][0] * wavelength**2/2/np.pi * f0
+    return n
+
+
+def delta(n):
+    '''
+    n = 1 - delta - 1j*beta
+        n - refractive index
+        delta - phase coefficient
+        beta - absorption coefficient
+    '''
+    return (1.0-np.real(n))
+
+
+def beta(n):
+    '''
+    n = 1 - delta - 1j*beta
+        n - refractive index
+        delta - phase coefficient
+        beta - absorption coefficient
+    '''
+    return -np.imag(n)
 
