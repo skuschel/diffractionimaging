@@ -7,20 +7,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip
         pip install -r pip-requirements.txt
         python setup.py install --user
     - name: run tests
+      shell: bash
       run: |
         ./run-tests.sh
 
@@ -29,21 +31,23 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        python-version: [3.8]
+        python-version: ["3.10"]
 
 # have to copy steps from above, as anchors are currently
 # not supported by github workflow (Jan 2020).
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip
         pip install -r pip-requirements.txt
         python setup.py install --user
     - name: run tests
+      shell: bash
       run: |
         ./run-tests.sh

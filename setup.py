@@ -19,7 +19,6 @@
 
 
 from setuptools import setup, find_packages
-import numpy
 import os
 
 import versioneer
@@ -32,10 +31,8 @@ setup(name='diffractionimaging',
       author_email='stephan.kuschel@gmail.de',
       description='Diffraction Imaging Tools for Python',
       url='https://github.com/skuschel/diffractionimaging',
-      include_dirs = [numpy.get_include()],
       license='GPLv3+',
       python_requires='>=3.6',
-      setup_requires=['numpy>=1.8'],
       install_requires=['numpy>=1.8',
                         'scipy',
                         'urllib3',
